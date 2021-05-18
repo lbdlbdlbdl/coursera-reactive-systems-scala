@@ -72,7 +72,7 @@ class BinaryTreeSet extends Actor {
   // optional
   /** Accepts `Operation` and `GC` messages. */
   val normal: Receive = {
-    case operation: Operation => root ! operation
+    case op: Operation => root ! op
     case GC =>
       val newRoot = createRoot
       root ! CopyTo(newRoot)
@@ -86,7 +86,7 @@ class BinaryTreeSet extends Actor {
     * all non-removed elements into.
     */
   def garbageCollecting(newRoot: ActorRef): Receive = {
-    case operation: Operation => pendingQueue = pendingQueue :+ operation
+    case op: Operation => pendingQueue = pendingQueue :+ op
     case CopyFinished =>
       root ! PoisonPill
       root = newRoot
@@ -121,7 +121,6 @@ class BinaryTreeNode(val elem: Int, initiallyRemoved: Boolean) extends Actor {
   import BinaryTreeNode._
   import actorbintree.BinaryTreeSet._
 
-
   var subtrees = Map[Position, ActorRef]()
   var removed = initiallyRemoved
 
@@ -149,13 +148,13 @@ class BinaryTreeNode(val elem: Int, initiallyRemoved: Boolean) extends Actor {
       }
     case op@Contains(requester: ActorRef, id: Int, elem: Int) =>
       if (this.elem == elem && !this.removed)
-        requester ! ContainsResult(id, true)
+        requester ! ContainsResult(id, result = true)
       else {
         val position = lOrRSubtree(elem)
         if (subtrees contains position)
           subtrees(position) ! op
         else
-          requester ! ContainsResult(id, false)
+          requester ! ContainsResult(id, result = false)
       }
     case op@Remove(requester: ActorRef, id: Int, elem: Int)  =>
       if (this.elem == elem) {
